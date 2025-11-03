@@ -163,6 +163,9 @@ class ScriptFile:
     duration: int
     """视频的总时长, 单位为微秒"""
 
+    maintrack_adsorb: bool
+    """是否启用主轨道吸附（主轨磁吸）"""
+
     materials: ScriptMaterial
     """草稿文件中的素材信息部分"""
     tracks: Dict[str, Track]
@@ -173,13 +176,14 @@ class ScriptFile:
     imported_tracks: List[ImportedTrack]
     """导入的轨道信息"""
 
-    def __init__(self, width: int, height: int, fps: int = 30):
+    def __init__(self, width: int, height: int, fps: int, maintrack_adsorb: bool):
         """**创建剪映草稿推荐使用`DraftFolder.create_draft()`而非此方法**
 
         Args:
             width (int): 视频宽度, 单位为像素
             height (int): 视频高度, 单位为像素
-            fps (int, optional): 视频帧率. 默认为30.
+            fps (int): 视频帧率
+            maintrack_adsorb (bool): 是否启用主轨道吸附（主轨磁吸）
         """
         self.save_path = None
 
@@ -187,6 +191,7 @@ class ScriptFile:
         self.height = height
         self.fps = fps
         self.duration = 0
+        self.maintrack_adsorb = maintrack_adsorb
 
         self.materials = ScriptMaterial()
         self.tracks = {}
@@ -215,6 +220,7 @@ class ScriptFile:
             obj.content = json.load(f)
 
         util.assign_attr_with_json(obj, ["fps", "duration"], obj.content)
+        util.assign_attr_with_json(obj, ["maintrack_adsorb"], obj.content["config"])
         util.assign_attr_with_json(obj, ["width", "height"], obj.content["canvas_config"])
 
         obj.imported_materials = deepcopy(obj.content["materials"])
@@ -778,6 +784,7 @@ class ScriptFile:
         """将草稿文件内容导出为JSON字符串"""
         self.content["fps"] = self.fps
         self.content["duration"] = self.duration
+        self.content["config"]["maintrack_adsorb"] = self.maintrack_adsorb
         self.content["canvas_config"] = {"width": self.width, "height": self.height, "ratio": "original"}
         self.content["materials"] = self.materials.export_json()
 
