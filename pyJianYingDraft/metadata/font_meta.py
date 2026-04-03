@@ -5,8 +5,8 @@ from .effect_meta import EffectMeta
 
 class FontType(EffectEnum):
     """字体资源类型"""
-
-    # 免费特效
+       # 免费特效
+    装甲明朝   =           EffectMeta( "装甲明朝", False, "7265536455655559739", "20356625", "3f334186c4522694108e7ab9534201fd", [])
     _3D_만화               = EffectMeta("3D 만화", False, "6841117833447870990", "20402387", "9d79db0486d90980a54240b3313ea156", [])
     A1明朝               = EffectMeta("A1明朝", False, "7246698168547545602", "20403949", "6eca3b3507bab16aac9ad557fa17a46e", [])
     AlexBrush            = EffectMeta("AlexBrush", False, "7241838813960475173", "14864426", "6be278d4aef1173e6ca44f9ff96f913a", [])
@@ -412,7 +412,6 @@ class FontType(EffectEnum):
     蜡笔体               = EffectMeta("蜡笔体", False, "6932407677234450952", "1049208", "05791deed6ab491bbc32edba7af8fa2e", [])
     蝉影隶书             = EffectMeta("蝉影隶书", False, "7045186520738697742", "1494867", "afcec5248968e5b3fd7d7eb3a670eadc", [])
     蝶汐体               = EffectMeta("蝶汐体", False, "7290441304029270587", "25999007", "c45854a55e2d3320e47c299633df8c7f", [])
-    装甲明朝             = EffectMeta("装甲明朝", False, "7265536455655559739", "20356625", "3f334186c4522694108e7ab9534201fd", [])
     解星テ_コール            = EffectMeta("解星デコール", False, "7236735801088807461", "20403335", "e87c0310b7f95ded9e9466ed5a038d23", [])
     谷槐体               = EffectMeta("谷槐体", False, "7290442552933618213", "25999006", "eb56bfc5c186158d60149372192b99ba", [])
     谷秋体               = EffectMeta("谷秋体", False, "7290442742822343205", "25999008", "233d1f80de91946da3c59527a61b1c87", [])
