@@ -363,7 +363,8 @@ def main_audio_with_video(script:ScriptFile,audios:list[str],srtList:list[str],c
             linked_video_material_time = linked_video_material.duration/1000000
             video_segment=draft.VideoSegment(linked_video_material,trange(f"{current_start+ duration_sec- linked_video_material_time-0.2}s",f"{linked_video_material_time}s"),volume=0.0)
             video_segment.add_animation(draft.OutroType.渐隐)
-            vi
+            
+            
             script.add_segment(video_segment, linked_video_material_track_name)
             add_loop_video_to_track(
             script,
@@ -407,7 +408,7 @@ def main_audio_with_video(script:ScriptFile,audios:list[str],srtList:list[str],c
             clip_settings=draft.ClipSettings(
                 scale_x=1,
                 scale_y=1,
-                transform_x=-0.8,
+                transform_x=-0.6,
                 transform_y=0.7,
             ),
             shadow=draft.TextShadow(color=(38/255, 139/255, 193/255), alpha=0.2)
