@@ -428,10 +428,11 @@ class ScriptFile:
         return self
 
     def import_srt(self, srt_path: str, track_name: str, *,
-                   time_offset: Union[str, float] = 0.0,
-                   style_reference: Optional[TextSegment] = None,
-                   text_style: TextStyle = TextStyle(size=5, align=1, auto_wrapping=True),
-                   clip_settings: Optional[ClipSettings] = ClipSettings(transform_y=-0.8)) -> "ScriptFile":
+                time_offset: Union[str, float] = 0.0,
+                style_reference: Optional[TextSegment] = None,
+                text_style: TextStyle = TextStyle(size=5, align=1, auto_wrapping=True),
+                clip_settings: Optional[ClipSettings] = ClipSettings(transform_y=-0.8),
+        ) -> "ScriptFile":
         """从SRT文件中导入字幕, 支持传入一个`TextSegment`作为样式参考
 
         注意: 默认不会使用参考片段的`clip_settings`属性, 若需要请显式为此函数传入`clip_settings=None`
@@ -453,7 +454,7 @@ class ScriptFile:
 
         time_offset = tim(time_offset)
         if track_name not in self.tracks:
-            self.add_track(TrackType.text, track_name, relative_index=999)  # 在所有文本轨道的最上层
+            self.add_track(TrackType.text, track_name, relative_index=999)
 
         with open(srt_path, "r", encoding="utf-8-sig") as srt_file:
             lines = srt_file.readlines()
@@ -469,40 +470,72 @@ class ScriptFile:
 
         index = 0
         text: str = ""
-        text_trange: Timerange
+        text_trange: Optional[Timerange] = None
         read_state: Literal["index", "timestamp", "content"] = "index"
+
+        entries = []
+
         while index < len(lines):
             line = lines[index].strip()
+
             if read_state == "index":
                 if len(line) == 0:
                     index += 1
                     continue
                 if not line.isdigit():
-                    raise ValueError("Expected a number at line %d, got '%s'" % (index+1, line))
+                    raise ValueError("Expected a number at line %d, got '%s'" % (index + 1, line))
                 index += 1
                 read_state = "timestamp"
+
             elif read_state == "timestamp":
-                # 读取时间戳
                 start_str, end_str = line.split(" --> ")
                 start, end = srt_tstamp(start_str), srt_tstamp(end_str)
                 text_trange = Timerange(start + time_offset, end - start)
 
+                text = ""
                 index += 1
                 read_state = "content"
-            elif read_state == "content":
-                # 内容结束, 生成片段
-                if len(line) == 0:
-                    __add_text_segment(text.strip(), text_trange)
 
+            elif read_state == "content":
+                if len(line) == 0:
+                
+                    if text_trange is not None and text.strip():
+                        entries.append((text.strip(), text_trange))
                     text = ""
+                    text_trange = None
+                    index += 1
                     read_state = "index"
                 else:
                     text += line + "\n"
-                index += 1
+                    index += 1
 
-        # 添加最后一个片段
-        if len(text) > 0:
-            __add_text_segment(text.strip(), text_trange)
+        if read_state == "content" and text_trange is not None and text.strip():
+            entries.append((text.strip(), text_trange))
+
+        resolved_entries = []
+        sum_text=""
+        for curr_text, curr_range in entries:
+
+            if not resolved_entries:
+                resolved_entries.append((curr_text, curr_range))
+                continue
+
+            last_text, last_range = resolved_entries[-1]
+
+            if curr_range.start < last_range.end:
+                sum_text+= curr_text+"\t"
+                # 时间冲突：保留更靠后的那个
+                end_time = max(last_range.end, curr_range.end)
+                resolved_entries[-1] = (sum_text, Timerange(min(last_range.start, curr_range.start), end_time - min(last_range.start, curr_range.start)))
+            else:
+                sum_text = ""
+                sum_text+= curr_text+"\t"
+
+                resolved_entries.append((curr_text, curr_range))
+
+
+        for seg_text, seg_range in resolved_entries:
+            __add_text_segment(seg_text, seg_range)
 
         return self
 

@@ -4,17 +4,21 @@ def lrc_to_srt(lrc_path, srt_path):
     with open(lrc_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    pattern = re.compile(r"\[(\d+):(\d+\.\d+)\](.*)")
-
     entries = []
 
     for line in lines:
-        matches = pattern.findall(line)
+        # 找到所有时间戳
+        matches = re.findall(r'\[(\d+):(\d+(?:\.\d+)?)\]', line)
+        if not matches:
+            continue
+        # 去掉所有时间戳，剩下就是文本
+        text = re.sub(r'\[.*?\]', '', line).strip()
+        if not text:
+            continue
+        # 每个时间戳都生成一条
         for m in matches:
             minute = int(m[0])
             second = float(m[1])
-            text = m[2].strip()
-
             start = minute * 60 + second
             entries.append((start, text))
 
@@ -22,14 +26,18 @@ def lrc_to_srt(lrc_path, srt_path):
     entries.sort(key=lambda x: x[0])
 
     # 写 SRT
+    min_duration = 1.5
     with open(srt_path, "w", encoding="utf-8") as f:
         for i, (start, text) in enumerate(entries):
-            end = entries[i + 1][0] if i + 1 < len(entries) else start + 3
-
+            if i + 1 < len(entries):
+                end = entries[i + 1][0]
+                if end - start < min_duration:
+                    end = start + min_duration
+            else:
+                end = start + 3
             f.write(f"{i+1}\n")
             f.write(f"{format_time(start)} --> {format_time(end)}\n")
             f.write(f"{text}\n\n")
-
 
 def format_time(t):
     h = int(t // 3600)

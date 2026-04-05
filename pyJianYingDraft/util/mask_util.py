@@ -6,7 +6,24 @@ FFMPEG_EXE = r"D:\video\ffmpeg-2026-04-01-git-eedf8f0165-full_build\bin\ffmpeg.e
 FFPROBE_EXE = r"D:\video\ffmpeg-2026-04-01-git-eedf8f0165-full_build\bin\ffprobe.exe"
 
 
+def _get_video_duration(path: str) -> float:
+    try:
+        probe = ffmpeg.probe(path, cmd=FFPROBE_EXE)
+    except ffmpeg.Error as e:
+        print("FFPROBE STDERR:")
+        print(e.stderr.decode("utf-8", errors="ignore") if e.stderr else "")
+        raise
 
+    # 先取 format.duration，拿不到再从 video stream 里找
+    fmt = probe.get("format", {})
+    if "duration" in fmt and fmt["duration"] not in (None, ""):
+        return float(fmt["duration"])
+
+    for s in probe.get("streams", []):
+        if s.get("codec_type") == "video" and s.get("duration") not in (None, ""):
+            return float(s["duration"])
+
+    raise RuntimeError(f"Cannot determine duration: {path}")
 
 
 def apply_video_mask(
@@ -14,8 +31,7 @@ def apply_video_mask(
     mask_path: str,
     output_path: str,
     mode: str = "alpha_from_luma",
-    keep_audio: bool = True,
-    duration: int = 0
+    keep_audio: bool = False,
 ) -> str:
     if not os.path.exists(source_path):
         raise FileNotFoundError(f"source not found: {source_path}")
@@ -30,38 +46,51 @@ def apply_video_mask(
         raise ValueError("output_path should use .mov when preserving alpha, e.g. output.mov")
 
     try:
-        probe = ffmpeg.probe(source_path, cmd=FFPROBE_EXE)
+        source_probe = ffmpeg.probe(source_path, cmd=FFPROBE_EXE)
+        mask_probe = ffmpeg.probe(mask_path, cmd=FFPROBE_EXE)
     except ffmpeg.Error as e:
         print("FFPROBE STDERR:")
         print(e.stderr.decode("utf-8", errors="ignore") if e.stderr else "")
         raise
 
-    source_video_stream = next(s for s in probe["streams"] if s["codec_type"] == "video")
+    source_video_stream = next(
+        s for s in source_probe["streams"] if s["codec_type"] == "video"
+    )
     width = int(source_video_stream["width"])
     height = int(source_video_stream["height"])
 
-    source = ffmpeg.input(source_path,t=duration)
+    source_duration = _get_video_duration(source_path)
+    mask_duration = _get_video_duration(mask_path)
 
-    mask_ext = os.path.splitext(mask_path)[1].lower()
-    image_exts = {".png", ".jpg", ".jpeg", ".bmp", ".webp"}
-    if mask_ext in image_exts:
-        mask = ffmpeg.input(mask_path, loop=1, framerate=30,t=duration)
-    else:
-        mask = ffmpeg.input(mask_path,t=duration)
+    # 你的要求：mask 比 source 长，直接报错
+    if mask_duration > source_duration:
+        raise ValueError(
+            f"mask duration ({mask_duration:.3f}s) is longer than source duration ({source_duration:.3f}s)"
+        )
 
-    source_v = source.video.filter("format", "rgba")
-    mask_v = mask.video
+    source = ffmpeg.input(source_path)
+    mask = ffmpeg.input(mask_path)
 
-    mask_gray = (
-        mask_v
+    # source 按 mask 时长截断
+    source_v = (
+        source.video
+        .filter("trim", start=0, duration=mask_duration)
+        .filter("setpts", "PTS-STARTPTS")
+        .filter("format", "rgba")
+    )
+
+    mask_v = (
+        mask.video
+        .filter("trim", start=0, duration=mask_duration)
+        .filter("setpts", "PTS-STARTPTS")
         .filter("scale", width, height)
         .filter("format", "gray")
     )
 
     if mode == "alpha_from_luma":
-        alpha_src = mask_gray
+        alpha_src = mask_v
     elif mode == "alpha_from_luma_invert":
-        alpha_src = mask_gray.filter("negate")
+        alpha_src = mask_v.filter("negate")
     else:
         raise ValueError("mode must be 'alpha_from_luma' or 'alpha_from_luma_invert'")
 
@@ -73,18 +102,23 @@ def apply_video_mask(
     }
 
     if keep_audio:
+        # 音频也按 mask 时长截断
+        source_a = (
+            source.audio
+            .filter("atrim", start=0, duration=mask_duration)
+            .filter("asetpts", "PTS-STARTPTS")
+        )
+
         stream = ffmpeg.output(
             masked,
-            source.audio,
+            source_a,
             output_path,
-            shortest=None,
             **out_kwargs,
         )
     else:
         stream = ffmpeg.output(
             masked,
             output_path,
-            shortest=None,
             **out_kwargs,
         )
 

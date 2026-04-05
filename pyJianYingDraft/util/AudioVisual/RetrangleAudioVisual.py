@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 class RingAudioVisual(AudioVisual):
     def __init__(self, fps=10):
-        self.fps = fps
+        super().__init__(fps)
 
     def draw_frame(self, v, t, size=(1920, 1080)) -> Image.Image:
         width, height = size
@@ -22,7 +22,7 @@ class RingAudioVisual(AudioVisual):
         # 频谱放在底部
         bar_count = 96
         bottom_margin = 10
-        bar_area_height = 220
+        bar_area_height = 300
         left_right_margin = 140
         gap = 8
 
@@ -77,5 +77,4 @@ class RingAudioVisual(AudioVisual):
 
         glow = glow.filter(ImageFilter.GaussianBlur(radius=12))
         img = Image.alpha_composite(glow, img)
-
         return img
