@@ -1,9 +1,3 @@
-from abc import ABC, abstractmethod
+from pyJianYingDraft.util.intro_video.interface import IntroVideoInterface
 
-
-class IntroVideoInterface(ABC):
-
-
-    @abstractmethod
-    def make_intro_video(self, duration: int, start_time: float, track: str) -> None:
-        raise NotImplementedError()
+__all__ = ["IntroVideoInterface"]
