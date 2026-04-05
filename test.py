@@ -60,6 +60,10 @@ class MusicItem:
     path: str
 
 
+        return sum_time
+
+
+# ===== 兼容旧调用的函数 API =====
 def short_name(name: str, max_len: int = 9) -> str:
     base_name, _ = os.path.splitext(name)
     if len(base_name) <= max_len:
