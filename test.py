@@ -114,7 +114,7 @@ class Music_item:
 
 # Windows 路径
 from pyJianYingDraft.util.InterVideo.StartInterVideo import run_text_video_pipeline
-def intro_make(script:ScriptFile,start_time:int,track:str,bg_video_path:str=r"D:\video\video\灵梦.mp4",texts:list[str]=["测试"]):
+def intro_make(script:ScriptFile,start_time:float,track:str,bg_video_path:str=r"D:\video\video\灵梦.mp4",texts:list[str]=["测试"]):
         
     script.add_track(TrackType.video,track,relative_index=9999)
     text_video= run_text_video_pipeline(
@@ -126,6 +126,7 @@ def intro_make(script:ScriptFile,start_time:int,track:str,bg_video_path:str=r"D:
     font_size=128,
     fps=30,
     keep_bg_audio=False)
+    
     text_video_material:VideoMaterial=draft.VideoMaterial(text_video)
     text_video_material_time = text_video_material.duration/1000000
     video_segment:VideoSegment = draft.VideoSegment(
@@ -134,7 +135,7 @@ def intro_make(script:ScriptFile,start_time:int,track:str,bg_video_path:str=r"D:
             volume=0.0
         )
     script.add_segment(video_segment, track)
-    start_time=start_time+int(text_video_material_time)
+    start_time=start_time+text_video_material_time
 
     text_mask= apply_video_mask(bg_video_path,os.path.join(MASK_DIR,random.choice(os.listdir(MASK_DIR))),f"D:\\video\\profix\\{uuid.uuid4().hex}.mov",mode="alpha_from_luma")
     text_mask_material:VideoMaterial=draft.VideoMaterial(text_mask)
@@ -145,7 +146,7 @@ def intro_make(script:ScriptFile,start_time:int,track:str,bg_video_path:str=r"D:
             volume=0.0,
         )
     script.add_segment(video_segment, track)
-    start_time=start_time+int(text_mask_material_time)
+    start_time=start_time+text_mask_material_time
     return start_time
 
 
