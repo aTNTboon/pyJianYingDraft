@@ -8,7 +8,7 @@ from pathlib import Path
 import pyJianYingDraft as draft
 from pymediainfo import MediaInfo
 
-from pyJianYingDraft import SEC, ScriptFile, tim, trange
+from pyJianYingDraft import ScriptFile, tim, trange
 from pyJianYingDraft.local_db import bootstrap_media_database
 from pyJianYingDraft.local_materials import CropSettings, VideoMaterial
 from pyJianYingDraft.metadata.mix_mode_meta import MixModeType
@@ -297,7 +297,7 @@ def run_demo(material_root: str = r"D:\video", draft_root: str = r"D:\jianying\J
         ),
     )
 
-    current_time = intro_builder.build(start_time=0, track="开场视频轨", texts=["你是否愿意再陪我去看一次长岛的雪"]) / SEC
+    current_time = intro_builder.build(start_time=0, track="开场视频轨", texts=["你是否愿意再陪我去看一次长岛的雪"])
     current_time += 2
 
     add_video_grid(
