@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import pyJianYingDraft as draft
 from pyJianYingDraft.script_file import ScriptFile
-from pyJianYingDraft.time_util import SEC, Timerange
+from pyJianYingDraft.time_util import trange
 from pyJianYingDraft.track import TrackType
 from pyJianYingDraft.util.InterVideo.StartInterVideo import run_text_video_pipeline
 from pyJianYingDraft.util.intro_video.interface import IntroVideoInterface
@@ -28,13 +28,7 @@ class MaskedTextIntroVideo(IntroVideoInterface):
     def make_intro_video(self, duration: int, start_time: float, track: str) -> None:
         raise NotImplementedError("该接口保留给兼容实现，推荐使用 build")
 
-    def _to_us(self, seconds_or_us: float | int) -> int:
-        # 兼容旧调用(秒)与新调用(微秒): int 且 >= 1秒时按微秒处理
-        if isinstance(seconds_or_us, int) and seconds_or_us >= SEC:
-            return seconds_or_us
-        return int(round(float(seconds_or_us) * SEC))
-
-    def build(self, start_time: float | int, track: str, texts: list[str], interval: float = 2.8) -> int:
+    def build(self, start_time: float, track: str, texts: list[str], interval: float = 2.8) -> float:
         self.script.add_track(TrackType.video, track, relative_index=9999)
         text_video = run_text_video_pipeline(
             texts=texts,
@@ -47,14 +41,13 @@ class MaskedTextIntroVideo(IntroVideoInterface):
             keep_bg_audio=False,
         )
 
-        start_time_us = self._to_us(start_time)
         text_video_material = draft.VideoMaterial(text_video)
-        text_video_duration_us = int(text_video_material.duration)
+        text_video_duration = text_video_material.duration / 1_000_000
         self.script.add_segment(
-            draft.VideoSegment(text_video, Timerange(start_time_us, text_video_duration_us), volume=0.0),
+            draft.VideoSegment(text_video, trange(f"{start_time}s", f"{text_video_duration}s"), volume=0.0),
             track,
         )
-        start_time_us += text_video_duration_us
+        start_time += text_video_duration
 
         mask_file = os.path.join(self.assets.mask_dir, random.choice(os.listdir(self.assets.mask_dir)))
         output_path = os.path.join(self.assets.output_dir, f"{uuid.uuid4().hex}.mov")
@@ -66,9 +59,9 @@ class MaskedTextIntroVideo(IntroVideoInterface):
         )
 
         text_mask_material = draft.VideoMaterial(text_mask)
-        text_mask_duration_us = int(text_mask_material.duration)
+        text_mask_duration = text_mask_material.duration / 1_000_000
         self.script.add_segment(
-            draft.VideoSegment(text_mask, Timerange(start_time_us, text_mask_duration_us), volume=0.0),
+            draft.VideoSegment(text_mask, trange(f"{start_time}s", f"{text_mask_duration}s"), volume=0.0),
             track,
         )
-        return start_time_us + text_mask_duration_us
+        return start_time + text_mask_duration
